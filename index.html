@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForkScout — Zomato Restaurant Scraper</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+    .light-mode{
+ background:white;
+ color:black;
+}
+:root {
+  --bg: #0a0906;
+  --bg2: #111009;
+  --bg3: #181510;
+  --bg4: #1e1a12;
+  --border: #2c2618;
+  --border2: #3a3020;
+  --accent: #e8593a;
+  --accent2: #f5a623;
+  --text: #f2ece2;
+  --text2: #a89880;
+  --text3: #6a5e50;
+  --green: #4caf7d;
+  --red: #e05252;
+  --blue: #5b9cf6;
+  --gold: #d4a853;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,9,6,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.7rem; font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--accent); }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: #1a2a15; border: 1px solid #2a4020;
+  color: var(--green); font-size: 12px; font-weight: 500;
+  padding: 4px 12px; border-radius: 20px;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  padding: 4rem 2rem 3rem;
+  text-align: center;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, #e8593a18 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.3;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 30%, transparent 100%);
+}
+.hero h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+  font-weight: 700; line-height: 1.1;
+  margin-bottom: 1rem;
+  position: relative;
+}
+.hero h1 em { color: var(--accent); font-style: normal; }
+.hero-sub {
+  color: var(--text2); font-size: 1rem; font-weight: 300;
+  max-width: 480px; margin: 0 auto 2rem;
+  line-height: 1.6; position: relative;
+}
+
+/* ── SCRAPER CONTROL PANEL ── */
+.control-panel {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 820px;
+  margin: 0 auto;
+  position: relative;
+}
+.panel-title {
+  font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 1rem;
+}
+.control-row {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px; }
+.ctrl-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: 0.5px; }
+select, input[type="text"], input[type="number"] {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+select:focus, input:focus { border-color: var(--accent); }
+select option { background: #1e1a12; }
+input::placeholder { color: var(--text3); }
+
+.btn-row { display: flex; gap: 10px; }
+.btn-primary {
+  background: var(--accent);
+  color: white; border: none;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  flex: 1;
+}
+.btn-primary:hover { background: #d44a2c; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { background: #5a3020; color: #8a6050; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--bg4); color: var(--text2);
+  border: 1px solid var(--border2);
+  padding: 10px 20px; border-radius: 8px;
+  font-family: 'Outfit', sans-serif; font-size: 14px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.btn-secondary:hover { border-color: var(--text3); color: var(--text); }
+
+/* ── PROGRESS ── */
+.progress-wrap { margin-top: 14px; display: none; }
+.progress-track {
+  height: 4px; background: var(--border2);
+  border-radius: 2px; overflow: hidden; margin-bottom: 6px;
+}
+.progress-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.progress-steps {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.step-badge {
+  font-size: 11px; padding: 3px 10px;
+  border-radius: 12px; font-weight: 500;
+  background: var(--bg4); border: 1px solid var(--border2);
+  color: var(--text3); transition: all 0.3s;
+}
+.step-badge.done { background: #1a2a15; border-color: #2a4820; color: var(--green); }
+.step-badge.active { background: #2a1810; border-color: #4a2818; color: var(--accent); }
+
+/* ── STATS ── */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.stat-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem 1.4rem;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--border2); }
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.accent::before { background: var(--accent); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.gold::before { background: var(--gold); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.red::before { background: var(--red); }
+.stat-icon { font-size: 1.4rem; margin-bottom: 8px; }
+.stat-num {
+  font-size: 1.8rem; font-weight: 600;
+  line-height: 1; margin-bottom: 4px;
+}
+.stat-card.accent .stat-num { color: var(--accent); }
+.stat-card.green .stat-num { color: var(--green); }
+.stat-card.gold .stat-num { color: var(--gold); }
+.stat-card.blue .stat-num { color: var(--blue); }
+.stat-card.red .stat-num { color: var(--red); }
+.stat-label { font-size: 12px; color: var(--text3); font-weight: 400; }
+.stat-delta { font-size: 11px; color: var(--green); margin-top: 4px; }
+
+/* ── CHARTS ROW ── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 2rem 2rem;
+  max-width: 1200px; margin: 0 auto;
+}
+@media(max-width:700px){ .charts-row { grid-template-columns: 1fr; } }
+.chart-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; padding: 1.4rem;
+}
+.chart-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 1.2rem; letter-spacing: 0.3px; }
+
+/* Bar chart */
+.bar-chart { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-label { font-size: 12px; color: var(--text2); min-width: 90px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 22px; background: var(--bg4); border-radius: 4px; overflow: hidden; }
+.bar-fill {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center; padding-left: 8px;
+  font-size: 11px; font-weight: 600; color: white;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap;
+}
+.bar-val { font-size: 12px; color: var(--text3); min-width: 28px; }
+
+/* Donut chart */
+.donut-wrap { display: flex; align-items: center; gap: 1.5rem; }
+.donut-svg { flex-shrink: 0; }
+.donut-legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-text { font-size: 12px; color: var(--text2); }
+.legend-pct { font-size: 12px; font-weight: 600; color: var(--text); margin-left: auto; padding-left: 12px; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 2rem 1rem;
+  max-width: 1200px; margin: 0 auto;
+  flex-wrap: wrap;
+}
+.search-wrap { position: relative; flex: 1; min-width: 200px; }
+.search-wrap input { padding-left: 36px; }
+.search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); font-size: 14px; pointer-events: none;
+}
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text2); cursor: pointer; transition: all 0.15s;
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--text3); color: var(--text); }
+.chip.active { border-color: var(--accent); color: var(--accent); background: #e8593a15; }
+.sort-select { min-width: 140px; }
+.result-count { font-size: 12px; color: var(--text3); white-space: nowrap; }
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  padding: 0 2rem 4rem;
+  max-width: 1200px; margin: 0 auto;
+}
+
+/* ── CARD ── */
+.rcard {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+  animation: fadeUp 0.4s ease both;
+}
+.rcard:hover {
+  border-color: var(--border2);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+@keyframes fadeUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+
+.card-thumb {
+  height: 140px; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3.5rem;
+  overflow: hidden;
+}
+.card-thumb-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(10,9,6,0.8) 100%);
+}
+.card-rank {
+  position: absolute; top: 10px; left: 12px;
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  padding: 2px 8px; border-radius: 10px;
+}
+.card-open-badge {
+  position: absolute; top: 10px; right: 12px;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 10px;
+}
+.open-yes { background: #1a3a20; color: var(--green); border: 1px solid #2a5030; }
+.open-no { background: #3a1515; color: var(--red); border: 1px solid #501a1a; }
+.card-rating-big {
+  position: absolute; bottom: 10px; right: 12px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem; font-weight: 700; color: white;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.card-body { padding: 14px 16px 16px; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.card-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem; font-weight: 700; color: var(--text);
+  line-height: 1.2; flex: 1;
+}
+.veg-badge {
+  width: 18px; height: 18px; border-radius: 3px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px; margin-left: 8px; font-size: 8px;
+}
+.veg { border: 2px solid var(--green); color: var(--green); }
+.nonveg { border: 2px solid var(--red); color: var(--red); }
+
+.card-cuisine { font-size: 12px; color: var(--text2); margin-bottom: 12px; }
+
+.card-details { display: flex; flex-direction: column; gap: 7px; }
+.detail-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.detail-icon { font-size: 13px; width: 18px; text-align: center; flex-shrink: 0; }
+.detail-text { color: var(--text2); flex: 1; }
+.detail-val { color: var(--text); font-weight: 500; }
+
+.card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+.tag {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
+  padding: 3px 9px; border-radius: 10px;
+}
+.tag-veg { background: #1a3a1a; color: #70c070; border: 1px solid #2a5020; }
+.tag-nonveg { background: #3a1a1a; color: #e07070; border: 1px solid #501a1a; }
+.tag-budget { background: #1a3a20; color: #5cd080; border: 1px solid #2a5530; }
+.tag-premium { background: #2a1a3a; color: #c080f0; border: 1px solid #3a2050; }
+.tag-popular { background: #3a2a10; color: #e8a830; border: 1px solid #5a4020; }
+.tag-new { background: #102a3a; color: #50b0e8; border: 1px solid #1a4050; }
+
+.card-divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; }
+.card-votes { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text3); }
+.stars { color: var(--gold); font-size: 11px; letter-spacing: 1px; }
+.card-action {
+  background: var(--bg4); border: 1px solid var(--border2);
+  color: var(--accent); font-size: 12px; font-weight: 500;
+  padding: 5px 14px; border-radius: 8px;
+  cursor: pointer; transition: background 0.15s;
+}
+.card-action:hover { background: #e8593a20; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.85);
+  display: none; align-items: center; justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 20px; width: 100%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto;
+  animation: modalIn 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
+.modal-thumb {
+  height: 180px; display: flex; align-items: center; justify-content: center;
+  font-size: 5rem; position: relative;
+  border-radius: 20px 20px 0 0; overflow: hidden;
+}
+.modal-close {
+  position: absolute; top: 12px; right: 14px;
+  background: rgba(0,0,0,0.6); border: none; color: white;
+  width: 30px; height: 30px; border-radius: 50%; font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.modal-body { padding: 1.5rem; }
+.modal-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem; font-weight: 700; margin-bottom: 4px;
+}
+.modal-cuisine { font-size: 13px; color: var(--text2); margin-bottom: 1rem; }
+.modal-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.modal-stat {
+  background: var(--bg4); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+  text-align: center; flex: 1; min-width: 80px;
+}
+.modal-stat-val { font-size: 1.2rem; font-weight: 600; color: var(--accent); }
+.modal-stat-key { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.modal-section { margin-bottom: 1.2rem; }
+.modal-section-title { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.modal-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modal-info-item { background: var(--bg4); border-radius: 8px; padding: 10px 12px; }
+.modal-info-label { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.modal-info-val { font-size: 13px; color: var(--text); font-weight: 500; }
+.rating-bar-wrap { margin-top: 8px; }
+.rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.rating-label { font-size: 11px; color: var(--text2); width: 20px; text-align: right; }
+.rating-track { flex: 1; height: 6px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.rating-fill { height: 100%; border-radius: 3px; background: var(--gold); }
+.rating-count { font-size: 11px; color: var(--text3); width: 32px; }
+
+/* ── EMPTY ── */
+.empty-state {
+  text-align: center; padding: 4rem 2rem;
+  grid-column: 1 / -1;
+}
+.empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+.empty-text { color: var(--text2); font-size: 1.1rem; margin-bottom: 0.5rem; }
+.empty-sub { color: var(--text3); font-size: 0.9rem; }
+
+/* ── FOOTER ── */
+footer {
+  text-align: center; padding: 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--text3); font-size: 12px;
+}
+footer span { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Fork<span>Scout</span></div>
+  <div class="header-right">
+    <button onclick="toggleTheme()">🌙</button>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Live Scraper
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <h1>Restaurant Data<br><em>Intelligence</em> Dashboard</h1>
+  <p class="hero-sub">Scrape, analyze and explore restaurant data from Zomato across Indian cities in real time</p>
+
+  <div class="control-panel">
+    <div class="panel-title">⚙ Scraper Configuration</div>
+    <div class="control-row">
+      <div class="ctrl-group">
+        <div class="ctrl-label">City</div>
+        <select id="citySelect">
+          <option value="bangalore">Bangalore</option>
+          <option value="mumbai">Mumbai</option>
+          <option value="delhi">Delhi</option>
+          <option value="kolkata">Kolkata</option>
+          <option value="hyderabad">Hyderabad</option>
+          <option value="chennai">Chennai</option>
+          <option value="pune">Pune</option>
+          <option value="ahmedabad">Ahmedabad</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Category</div>
+        <select id="catSelect">
+          <option value="delivery">Delivery</option>
+          <option value="dine-out">Dine Out</option>
+          <option value="cafes">Cafes</option>
+          <option value="nightlife">Nightlife</option>
+          <option value="pubs-and-bars">Pubs & Bars</option>
+          <option value="buffets">Buffets</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Pages to Scrape</div>
+        <input type="number" value="3" min="1" max="10" id="pagesInput" style="max-width:100px">
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Min Rating</div>
+        <select id="minRating">
+          <option value="0">Any Rating</option>
+          <option value="3">3.0+</option>
+          <option value="3.5">3.5+</option>
+          <option value="4">4.0+</option>
+          <option value="4.5">4.5+</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="scrapeBtn" onclick="simulateScrape()">▶ Start Scraping</button>
+      <button class="btn-secondary" onclick="exportCSV()">↓ Export CSV</button>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-steps" id="progressSteps"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-section" id="statsSection">
+  <div class="stat-card accent">
+    <div class="stat-icon">🍽️</div>
+    <div class="stat-num" id="s-total">24</div>
+    <div class="stat-label">Total Restaurants</div>
+    <div class="stat-delta">↑ Scraped from Zomato</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon">⭐</div>
+    <div class="stat-num" id="s-avg">4.2</div>
+    <div class="stat-label">Average Rating</div>
+    <div class="stat-delta">↑ Across all listings</div>
+  </div>
+  <div class="stat-card gold">
+    <div class="stat-icon">🏆</div>
+    <div class="stat-num" id="s-top">South Indian</div>
+    <div class="stat-label">Top Cuisine</div>
+    <div class="stat-delta">↑ Most listed</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon">✅</div>
+    <div class="stat-num" id="s-open">18</div>
+    <div class="stat-label">Open Right Now</div>
+    <div class="stat-delta">↑ Available for orders</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon">💰</div>
+    <div class="stat-num" id="s-avgprice">₹720</div>
+    <div class="stat-label">Avg Price for Two</div>
+    <div class="stat-delta">↑ Median cost</div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Top Cuisines by Count</div>
+    <div class="bar-chart" id="cuisineChart"></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Price Segment Distribution</div>
+    <div class="donut-wrap">
+      <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120" id="donutSvg"></svg>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search by name, cuisine, area..." oninput="applyFilters()">
+  </div>
+  <div class="filter-chips">
+    <div class="chip active" onclick="filterBy('all',this)">All</div>
+    <div class="chip" onclick="filterBy('4plus',this)">★ 4.0+</div>
+    <div class="chip" onclick="filterBy('open',this)">Open Now</div>
+    <div class="chip" onclick="filterBy('veg',this)">Veg Only</div>
+    <div class="chip" onclick="filterBy('budget',this)">Budget</div>
+    <div class="chip" onclick="filterBy('premium',this)">Premium</div>
+    <div class="chip" onclick="filterBy('popular',this)">Popular</div>
+  </div>
+  <select class="sort-select" onchange="applyFilters()" id="sortSelect">
+    <option value="rating">Sort: Rating</option>
+    <option value="price-low">Price: Low to High</option>
+    <option value="price-high">Price: High to Low</option>
+    <option value="reviews">Most Reviews</option>
+    <option value="name">Name A–Z</option>
+  </select>
+  <div class="result-count" id="resultCount">Showing 24 results</div>
+</div>
+<div style="text-align:center;padding:15px;">
+<button onclick="compareRestaurants()">
+⚔️ Compare
+</button>
+</div>
+
+<!-- GRID -->
+<div class="grid" id="grid"></div>
+<div style="text-align:center;padding:20px;">
+<input type="text"
+id="liveSearch"
+placeholder="Search Restaurant..."
+onkeyup="searchRestaurants()"
+style="padding:10px;width:300px;border-radius:8px;">
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-thumb" id="modalThumb">
+      <button class="modal-close" onclick="closeModalBtn()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+
+<footer>
+  ForkScout &mdash; Restaurant Intelligence &mdash; Built with 
+  <span>Python + Selenium + BeautifulSoup + Pandas</span><br><br>
+  Made with ❤️ by <span>Nithesh</span>
+</footer>
+<script>
+    function compareRestaurants(){
+ alert("Top 2 Restaurants Compared 🏆");
+}
+
+    function addFavorite(name){
+ let fav =
+ JSON.parse(localStorage.getItem("fav")) || [];
+
+ fav.push(name);
+
+ localStorage.setItem("fav",
+ JSON.stringify(fav));
+
+ alert(name + " Added ❤️");
+}
+
+    function searchRestaurants(){
+ let input =
+ document.getElementById("liveSearch").value.toLowerCase();
+
+ let cards =
+ document.querySelectorAll(".rcard");
+
+ cards.forEach(card=>{
+   if(card.innerText.toLowerCase().includes(input)){
+      card.style.display="block";
+   }else{
+      card.style.display="none";
+   }
+ });
+}
+    function toggleTheme(){
+ document.body.classList.toggle("light-mode");
+}
+const EMOJIS = ['🍛','🍕','🍜','🍔','🥗','🍣','🥘','🍱','🌮','🍝','🥩','🍲','🧆','🥙','🫕','🍤','🥐','🧇','🍗','🧈','🍞','🫔','🥞','🍙'];
+const BGTONES = [
+  'linear-gradient(135deg,#2a1510 0%,#1a0d08 100%)',
+  'linear-gradient(135deg,#0d1a10 0%,#081208 100%)',
+  'linear-gradient(135deg,#0d1020 0%,#080a18 100%)',
+  'linear-gradient(135deg,#1a0d1a 0%,#12081a 100%)',
+  'linear-gradient(135deg,#1a1a0d 0%,#121205 100%)',
+  'linear-gradient(135deg,#0d1a1a 0%,#081212 100%)',
+];
+
+const DATA = [
+  {name:"Meghana Foods",cuisine:"Andhra, Biryani",area:"Koramangala",rating:4.5,price:400,reviews:2100,open:true,veg:false,tags:['popular'],phone:"080-41500527",timing:"11:00 AM – 11:00 PM",delivery:30,discount:"20% off",known:"Nati Kodi Pulao, Boneless Biryani"},
+  {name:"Truffles",cuisine:"American, Burgers",area:"Koramangala",rating:4.4,price:600,reviews:3400,open:true,veg:false,tags:['popular'],phone:"080-41153370",timing:"12:00 PM – 11:30 PM",delivery:45,discount:"15% off",known:"Beast Burger, Truffle Fries"},
+  {name:"Brahmin's Coffee Bar",cuisine:"South Indian",area:"Basavanagudi",rating:4.6,price:150,reviews:1800,open:false,veg:true,tags:['budget','popular'],phone:"080-26768022",timing:"7:30 AM – 1:00 PM, 4:00 PM – 8:00 PM",delivery:null,discount:null,known:"Idli-Vada, Filter Coffee"},
+  {name:"CTR – Central Tiffin Room",cuisine:"South Indian",area:"Malleswaram",rating:4.5,price:200,reviews:2200,open:true,veg:true,tags:['budget','popular'],phone:"080-23460763",timing:"8:00 AM – 1:30 PM",delivery:null,discount:null,known:"Benne Masala Dosa"},
+  {name:"Toit Brewpub",cuisine:"Pub, Craft Beer",area:"Indiranagar",rating:4.4,price:1200,reviews:5100,open:true,veg:false,tags:['premium','popular'],phone:"080-25274020",timing:"12:00 PM – 12:00 AM",delivery:60,discount:null,known:"Tintin's Stout, Fish & Chips"},
+  {name:"Koshy's",cuisine:"Continental, Bakery",area:"St. Mark's Road",rating:4.2,price:700,reviews:1500,open:true,veg:false,tags:[],phone:"080-22213793",timing:"9:00 AM – 11:00 PM",delivery:40,discount:null,known:"Club Sandwich, Prawn Curry"},
+  {name:"Vidyarthi Bhavan",cuisine:"South Indian",area:"Gandhi Bazaar",rating:4.6,price:200,reviews:3000,open:false,veg:true,tags:['budget','popular'],phone:"080-26677588",timing:"6:30 AM – 11:30 AM, 2:00 PM – 8:30 PM",delivery:null,discount:null,known:"Masala Dosa, Kesari Bath"},
+  {name:"The Fatty Bao",cuisine:"Asian, Japanese",area:"Indiranagar",rating:4.3,price:1400,reviews:2600,open:true,veg:false,tags:['premium','new'],phone:"080-41700060",timing:"12:00 PM – 11:00 PM",delivery:50,discount:"10% off",known:"Steamed Bao, Ramen"},
+  {name:"Corner House Ice Cream",cuisine:"Desserts, Ice Cream",area:"Defence Colony",rating:4.5,price:300,reviews:4200,open:true,veg:true,tags:['popular'],phone:"080-25580834",timing:"11:00 AM – 11:30 PM",delivery:25,discount:null,known:"Death by Chocolate, Banana Split"},
+  {name:"Karavalli",cuisine:"Coastal, Seafood",area:"Taj Gateway",rating:4.7,price:2500,reviews:1200,open:true,veg:false,tags:['premium'],phone:"080-66604545",timing:"12:30 PM – 3:00 PM, 7:30 PM – 11:30 PM",delivery:null,discount:null,known:"Karimeen Pollichathu, Appam"},
+  {name:"BBQ Nation",cuisine:"North Indian, BBQ",area:"Whitefield",rating:4.1,price:1600,reviews:6300,open:true,veg:false,tags:['popular'],phone:"1800-209-9007",timing:"12:00 PM – 11:00 PM",delivery:null,discount:"Weekend specials",known:"Live Grill, Tandoor"},
+  {name:"Empire Restaurant",cuisine:"North Indian, Biryani",area:"Brigade Road",rating:3.9,price:500,reviews:7100,open:true,veg:false,tags:['popular'],phone:"080-22112672",timing:"10:00 AM – 2:00 AM",delivery:35,discount:null,known:"Chicken Biryani, Chicken 65"},
+  {name:"Arbor Brewing Company",cuisine:"Pub, Burgers",area:"Indiranagar",rating:4.2,price:1500,reviews:1900,open:true,veg:false,tags:['premium'],phone:"080-25219750",timing:"12:00 PM – 11:45 PM",delivery:null,discount:null,known:"Munich Gold, Nachos"},
+  {name:"Onesta",cuisine:"Pizza, Italian",area:"JP Nagar",rating:4.3,price:700,reviews:3800,open:true,veg:false,tags:['popular'],phone:"080-26649960",timing:"11:30 AM – 11:00 PM",delivery:40,discount:"20% off",known:"Cheese Burst Pizza"},
+  {name:"Mavalli Tiffin Rooms",cuisine:"South Indian",area:"Lalbagh Road",rating:4.5,price:250,reviews:4500,open:false,veg:true,tags:['budget','popular'],phone:"080-22220022",timing:"6:30 AM – 11:00 AM, 3:30 PM – 7:30 PM",delivery:null,discount:null,known:"Set Dosa, Filter Coffee"},
+  {name:"Shivaji Military Hotel",cuisine:"South Indian, Non-veg",area:"Jayanagar",rating:4.4,price:300,reviews:2800,open:true,veg:false,tags:['budget'],phone:"080-26562299",timing:"8:00 AM – 10:30 PM",delivery:30,discount:null,known:"Mutton Chops, Neer Dosa"},
+  {name:"Smoke House Deli",cuisine:"Continental, Cafe",area:"MG Road",rating:4.2,price:1200,reviews:2000,open:false,veg:false,tags:['premium'],phone:"080-49107770",timing:"12:00 PM – 11:00 PM",delivery:45,discount:"Happy Hours",known:"Smoked Salmon, Pasta"},
+  {name:"The Only Place",cuisine:"Continental, Steaks",area:"Museum Road",rating:4.3,price:2200,reviews:1600,open:true,veg:false,tags:['premium'],phone:"080-25585396",timing:"12:30 PM – 3:00 PM, 7:00 PM – 11:00 PM",delivery:null,discount:null,known:"Tenderloin Steak, Pepper Sauce"},
+  {name:"Nagarjuna",cuisine:"Andhra, South Indian",area:"Residency Road",rating:4.2,price:500,reviews:5800,open:true,veg:false,tags:['popular'],phone:"080-22212690",timing:"12:00 PM – 4:00 PM, 7:00 PM – 11:00 PM",delivery:35,discount:null,known:"Natu Kodi Fry, Pappu"},
+  {name:"Savoury Sea Shell",cuisine:"Seafood, Coastal",area:"Ulsoor",rating:4.1,price:900,reviews:1100,open:true,veg:false,tags:[],phone:"080-25584888",timing:"12:00 PM – 11:30 PM",delivery:50,discount:null,known:"Lobster Masala, Prawn Ghee Roast"},
+  {name:"Hole in the Wall Cafe",cuisine:"Cafe, Continental",area:"Vittal Mallya Rd",rating:4.1,price:800,reviews:1300,open:true,veg:false,tags:['new'],phone:"080-41200888",timing:"10:00 AM – 10:00 PM",delivery:40,discount:"10% off",known:"Eggs Benedict, Avocado Toast"},
+  {name:"High Ultra Lounge",cuisine:"Lounge, Continental",area:"Barton Centre",rating:4.0,price:2000,reviews:700,open:true,veg:false,tags:['premium'],phone:"080-41238888",timing:"7:00 PM – 1:00 AM",delivery:null,discount:null,known:"Cocktails, Live Music"},
+  {name:"Punjabi By Nature",cuisine:"North Indian, Mughlai",area:"UB City",rating:4.2,price:1800,reviews:900,open:true,veg:false,tags:['premium'],phone:"080-41454545",timing:"12:30 PM – 3:30 PM, 7:30 PM – 11:30 PM",delivery:null,discount:null,known:"Dal Makhani, Butter Naan"},
+  {name:"Natural Ice Cream",cuisine:"Desserts, Ice Cream",area:"Koramangala",rating:4.4,price:250,reviews:3600,open:true,veg:true,tags:['budget','popular'],phone:"080-25633355",timing:"11:00 AM – 11:00 PM",delivery:20,discount:null,known:"Sitaphal Ice Cream, Tender Coconut"},
+];
+
+let activeFilter = 'all';
+let currentData = [...DATA];
+
+function getStars(r) {
+  const full = Math.floor(r), half = (r % 1) >= 0.5;
+  return '★'.repeat(full) + (half?'½':'') + '☆'.repeat(5-full-(half?1:0));
+}
+function formatReviews(n) {
+  return n >= 1000 ? (n/1000).toFixed(1) + 'k' : n;
+}
+function getTagClass(t) {
+  const m = {budget:'tag-budget',premium:'tag-premium',popular:'tag-popular',new:'tag-new'};
+  return m[t] || '';
+}
+
+function renderCards(data) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  if (!data.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-text">No restaurants found</div>
+      <div class="empty-sub">Try a different filter or search term</div>
+    </div>`;
+    return;
+  }
+  data.forEach((r, i) => {
+    const bg = BGTONES[i % BGTONES.length];
+    const em = EMOJIS[i % EMOJIS.length];
+    const priceLabel = r.price <= 400 ? 'Budget' : r.price >= 1500 ? 'Premium' : 'Mid-range';
+    const allTags = [...r.tags, r.veg ? 'veg' : 'nonveg'];
+    const div = document.createElement('div');
+    div.className = 'rcard';
+    div.style.animationDelay = (i * 0.04) + 's';
+    div.onclick = () => openModal(r, em, bg);
+    div.innerHTML = `
+      <div class="card-thumb" style="background:${bg}">
+        ${em}
+        <div class="card-thumb-overlay"></div>
+        <div class="card-rank">#${i+1}</div>
+        <div class="card-open-badge ${r.open?'open-yes':'open-no'}">${r.open?'Open':'Closed'}</div>
+        <div class="card-rating-big">${r.rating}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <div class="card-name">${r.name}</div>
+          <div class="veg-badge ${r.veg?'veg':'nonveg'}">${r.veg?'●':'■'}</div>
+        </div>
+        <div class="card-cuisine">${r.cuisine}</div>
+        <div class="card-details">
+          <div class="detail-row">
+            <span class="detail-icon">📍</span>
+            <span class="detail-text">Location</span>
+            <span class="detail-val">${r.area}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-icon">💰</span>
+            <span class="detail-text">Price for two</span>
+            <span class="detail-val">₹${r.price}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-icon">💬</span>
+            <span class="detail-text">Reviews</span>
+            <span class="detail-val">${formatReviews(r.reviews)} reviews</span>
+          </div>
+          ${r.delivery ? `<div class="detail-row">
+            <span class="detail-icon">🛵</span>
+            <span class="detail-text">Delivery time</span>
+            <span class="detail-val">${r.delivery} mins</span>
+          </div>` : ''}
+          ${r.discount ? `<div class="detail-row">
+            <span class="detail-icon">🏷️</span>
+            <span class="detail-text">Offer</span>
+            <span class="detail-val" style="color:var(--green)">${r.discount}</span>
+          </div>` : ''}
+        </div>
+        <div class="card-tags">
+          ${allTags.map(t=>`<span class="tag tag-${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</span>`).join('')}
+          <span class="tag" style="background:var(--bg4);color:var(--text3);border:1px solid var(--border2)">${priceLabel}</span>
+        </div>
+        <div class="card-divider"></div>
+        <div class="card-footer">
+            <button onclick="addFavorite('Restaurant')">❤️</button>
+          <div class="card-votes">
+            <span class="stars">${getStars(r.rating)}</span>
+            &nbsp;${r.rating} · ${formatReviews(r.reviews)}
+          </div>
+          <div class="card-action">View Details →</div>
+        </div>
+      </div>`;
+    grid.appendChild(div);
+  });
+  updateStats(data);
+  document.getElementById('resultCount').textContent = `Showing ${data.length} results`;
+}
+
+function updateStats(data) {
+  document.getElementById('s-total').textContent = data.length;
+  const avg = data.reduce((s,r)=>s+r.rating,0)/data.length;
+  document.getElementById('s-avg').textContent = avg.toFixed(1);
+  document.getElementById('s-open').textContent = data.filter(r=>r.open).length;
+  const avgP = Math.round(data.reduce((s,r)=>s+r.price,0)/data.length);
+  document.getElementById('s-avgprice').textContent = '₹'+avgP;
+  const cm = {};
+  data.forEach(r=>r.cuisine.split(',').forEach(c=>{const k=c.trim();cm[k]=(cm[k]||0)+1;}));
+  const top = Object.entries(cm).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('s-top').textContent = top?top[0]:'—';
+  renderCuisineChart(data);
+  renderDonut(data);
+}
+
+function renderCuisineChart(data) {
+  const cm = {};
+  data.forEach(r=>r.cuisine.split(',').forEach(c=>{const k=c.trim();cm[k]=(cm[k]||0)+1;}));
+  const top = Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max = top[0]?.[1] || 1;
+  const colors = ['#e8593a','#f5a623','#4caf7d','#5b9cf6','#c770f0','#f06090'];
+  const el = document.getElementById('cuisineChart');
+  el.innerHTML = top.map(([name,cnt],i)=>`
+    <div class="bar-row">
+      <div class="bar-label" title="${name}">${name}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.round(cnt/max*100)}%;background:${colors[i%colors.length]}">${cnt}</div>
+      </div>
+      <div class="bar-val">${cnt}</div>
+    </div>`).join('');
+}
+
+function renderDonut(data) {
+  const segs = [
+    {label:'Budget (≤₹400)',key:'budget',color:'#4caf7d',test:r=>r.price<=400},
+    {label:'Mid (₹400–1200)',key:'mid',color:'#5b9cf6',test:r=>r.price>400&&r.price<=1200},
+    {label:'Premium (>₹1200)',key:'prem',color:'#e8593a',test:r=>r.price>1200},
+  ];
+  const counts = segs.map(s=>({...s,cnt:data.filter(s.test).length}));
+  const total = counts.reduce((s,c)=>s+c.cnt,0)||1;
+  const svg = document.getElementById('donutSvg');
+  const legend = document.getElementById('donutLegend');
+  const cx=60,cy=60,r=44,inner=26;
+  let angle = -Math.PI/2;
+  let paths = '';
+  counts.forEach(c=>{
+    const pct = c.cnt/total;
+    const sweep = pct*2*Math.PI;
+    if(sweep<0.001){angle+=sweep;return;}
+    const x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+    angle+=sweep;
+    const x2=cx+r*Math.cos(angle), y2=cy+r*Math.sin(angle);
+    const ix1=cx+inner*Math.cos(angle-sweep), iy1=cy+inner*Math.sin(angle-sweep);
+    const ix2=cx+inner*Math.cos(angle), iy2=cy+inner*Math.sin(angle);
+    const large=sweep>Math.PI?1:0;
+    paths+=`<path d="M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${ix2},${iy2} A${inner},${inner} 0 ${large} 0 ${ix1},${iy1} Z" fill="${c.color}" opacity="0.9"/>`;
+  });
+  svg.innerHTML = paths + `<text x="60" y="56" text-anchor="middle" fill="#f2ece2" font-size="13" font-weight="600" font-family="Outfit">${total}</text><text x="60" y="70" text-anchor="middle" fill="#6a5e50" font-size="9" font-family="Outfit">TOTAL</text>`;
+  legend.innerHTML = counts.map(c=>`
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${c.color}"></div>
+      <div class="legend-text">${c.label}</div>
+      <div class="legend-pct">${Math.round(c.cnt/total*100)}%</div>
+    </div>`).join('');
+}
+
+function openModal(r, em, bg) {
+  document.getElementById('modalThumb').style.background = bg;
+  document.getElementById('modalThumb').innerHTML = `<span style="font-size:4rem">${em}</span><button class="modal-close" onclick="closeModalBtn()">✕</button>`;
+  const rDist = [5,4,3,2,1].map(star=>{
+    const pct = star===Math.round(r.rating)?55:star===Math.floor(r.rating)?30:star===Math.ceil(r.rating)?25:star<r.rating-1?15:5;
+    return {star,pct};
+  });
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-name">${r.name}</div>
+    <div class="modal-cuisine">${r.cuisine} · ${r.area}</div>
+    <div class="modal-row">
+      <div class="modal-stat"><div class="modal-stat-val">${r.rating}</div><div class="modal-stat-key">Rating</div></div>
+      <div class="modal-stat"><div class="modal-stat-val">₹${r.price}</div><div class="modal-stat-key">For Two</div></div>
+      <div class="modal-stat"><div class="modal-stat-val">${formatReviews(r.reviews)}</div><div class="modal-stat-key">Reviews</div></div>
+      <div class="modal-stat"><div class="modal-stat-val" style="color:${r.open?'var(--green)':'var(--red)'}">${r.open?'Open':'Closed'}</div><div class="modal-stat-key">Status</div></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Restaurant Details</div>
+      <div class="modal-info-grid">
+        <div class="modal-info-item"><div class="modal-info-label">Phone</div><div class="modal-info-val">${r.phone}</div></div>
+        <div class="modal-info-item"><div class="modal-info-label">Timings</div><div class="modal-info-val" style="font-size:11px">${r.timing}</div></div>
+        <div class="modal-info-item"><div class="modal-info-label">Food Type</div><div class="modal-info-val" style="color:${r.veg?'var(--green)':'var(--red)'}">${r.veg?'🟢 Pure Veg':'🔴 Non-Veg'}</div></div>
+        <div class="modal-info-item"><div class="modal-info-label">Delivery</div><div class="modal-info-val">${r.delivery?r.delivery+' mins':'Not Available'}</div></div>
+        ${r.discount?`<div class="modal-info-item"><div class="modal-info-label">Active Offer</div><div class="modal-info-val" style="color:var(--green)">${r.discount}</div></div>`:''}
+        <div class="modal-info-item"><div class="modal-info-label">Known For</div><div class="modal-info-val" style="font-size:11px">${r.known}</div></div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Rating Breakdown</div>
+      <div class="rating-bar-wrap">
+        ${rDist.map(({star,pct})=>`
+          <div class="rating-row">
+            <div class="rating-label">${star}★</div>
+            <div class="rating-track"><div class="rating-fill" style="width:${pct}%"></div></div>
+            <div class="rating-count">${pct}%</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="card-tags" style="margin-top:8px">
+      ${r.tags.map(t=>`<span class="tag tag-${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</span>`).join('')}
+      <span class="tag ${r.veg?'tag-veg':'tag-nonveg'}">${r.veg?'Pure Veg':'Non Veg'}</span>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(e){ if(e.target===document.getElementById('modalOverlay')) closeModalBtn(); }
+function closeModalBtn(){ document.getElementById('modalOverlay').classList.remove('open'); }
+
+function filterBy(type, btn) {
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = type;
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const sort = document.getElementById('sortSelect').value;
+  let data = DATA.filter(r => {
+    if(q && !r.name.toLowerCase().includes(q) && !r.cuisine.toLowerCase().includes(q) && !r.area.toLowerCase().includes(q)) return false;
+    if(activeFilter==='4plus') return r.rating>=4.0;
+    if(activeFilter==='open') return r.open;
+    if(activeFilter==='veg') return r.veg;
+    if(activeFilter==='budget') return r.price<=400;
+    if(activeFilter==='premium') return r.price>=1500;
+    if(activeFilter==='popular') return r.tags.includes('popular');
+    return true;
+  });
+  if(sort==='rating') data.sort((a,b)=>b.rating-a.rating);
+  else if(sort==='price-low') data.sort((a,b)=>a.price-b.price);
+  else if(sort==='price-high') data.sort((a,b)=>b.price-a.price);
+  else if(sort==='reviews') data.sort((a,b)=>b.reviews-a.reviews);
+  else if(sort==='name') data.sort((a,b)=>a.name.localeCompare(b.name));
+  currentData = data;
+  renderCards(data);
+}
+
+function simulateScrape() {
+  const btn = document.getElementById('scrapeBtn');
+  const wrap = document.getElementById('progressWrap');
+  const bar = document.getElementById('progressBar');
+  const stepsEl = document.getElementById('progressSteps');
+  const steps = ['Connecting','Fetching HTML','Parsing DOM','Extracting Data','Cleaning','Saving CSV','Complete!'];
+  btn.disabled = true;
+  wrap.style.display = 'block';
+  stepsEl.innerHTML = steps.map((s,i)=>`<div class="step-badge" id="step-${i}">${s}</div>`).join('');
+  let pct = 0, si = 0;
+  const iv = setInterval(()=>{
+    pct = Math.min(pct + Math.random()*14+8, 100);
+    bar.style.width = pct+'%';
+    const ni = Math.min(Math.floor(pct/100*steps.length), steps.length-1);
+    if(ni>si){ for(let j=si;j<ni;j++) document.getElementById(`step-${j}`).className='step-badge done'; si=ni; }
+    if(si<steps.length) document.getElementById(`step-${si}`).className='step-badge active';
+    if(pct>=100){
+      clearInterval(iv);
+      steps.forEach((_,j)=>document.getElementById(`step-${j}`).className='step-badge done');
+      setTimeout(()=>{ wrap.style.display='none'; bar.style.width='0%'; btn.disabled=false; renderCards(DATA); },700);
+    }
+  },480);
+}
+
+function exportCSV() {
+  const headers = ['Name','Cuisine','Area','Rating','Price','Reviews','Open','Veg','Phone','Timing','Delivery','Discount','Known For'];
+  const rows = currentData.map(r=>[r.name,r.cuisine,r.area,r.rating,r.price,r.reviews,r.open,r.veg,r.phone,r.timing,r.delivery||'',r.discount||'',r.known]);
+  const csv = [headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'zomato_restaurants.csv';
+  a.click();
+}
+
+// Init
+renderCards(DATA);
+</script>
+</body>
+</html>
